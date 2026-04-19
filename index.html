@@ -1,0 +1,241 @@
+<html lang="en">
+
+<head>
+  <title>Bob the Robber 2</title>
+  <script src="/js/all.js"></script>
+
+  <meta id="viewport" name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui, shrink-to-fit=no" />
+  <link rel="stylesheet" href="assets/css/app.css" type="text/css" />
+  <link rel="stylesheet" href="ui-theme.css?v=4" type="text/css" />
+  <style>
+    /* Override injected JS styles from the game branding and canvas */
+    html,
+    body {
+      background: #0b0c10 !important;
+      background-image: none !important;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    #h5branding-container,
+    #h5branding-background {
+      display: none !important;
+    }
+
+    canvas {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+
+    /* Custom UI Styles - Premium Dark Artistic */
+    #my-custom-ui {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      text-align: center;
+      background: #1f2833;
+      padding: 50px 60px;
+      color: #c5c6c7;
+      border: 1px solid #323d4a;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+      border-radius: 0px;
+      /* Brutalist sharp edges */
+      min-width: 450px;
+    }
+
+    #my-custom-ui h1 {
+      font-size: 34px;
+      font-weight: 800;
+      margin: 0 0 15px 0;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #66fcf1;
+    }
+
+    #my-custom-ui p {
+      font-size: 16px;
+      color: #c5c6c7;
+      margin: 0 0 45px 0;
+      line-height: 1.6;
+      font-weight: 300;
+      letter-spacing: 0.5px;
+    }
+
+    #my-custom-play-btn {
+      background: #45a29e;
+      color: #0b0c10;
+      border: none;
+      padding: 18px 45px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border-radius: 0px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 6px 6px 0 #66fcf1;
+      /* Solid shadow, NO gradients */
+    }
+
+    #my-custom-play-btn:hover {
+      background: #66fcf1;
+      transform: translate(-2px, -2px);
+      box-shadow: 8px 8px 0 #45a29e;
+    }
+
+    #my-custom-play-btn:active {
+      transform: translate(6px, 6px);
+      box-shadow: 0px 0px 0 #45a29e;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- YOUR CUSTOM UI GOES HERE -->
+  <div id="my-custom-ui">
+    <h1>KineticLink : Parkinson Bio-Tracker</h1>
+    <p>Turn your hand movements into Inputs using AI.</p>
+    <button id="my-custom-play-btn" onclick="startMyGame()">LAUNCH PROJECT</button>
+  </div>
+
+  <script>
+    // Function to start the game and hide the custom UI
+    function startMyGame() {
+      var ui = document.getElementById("my-custom-ui");
+      ui.style.display = "none";
+
+      // This triggers the internal game loader
+      if (window.h5branding && window.h5branding.SplashLoader) {
+        h5branding.SplashLoader.getInstance().onPlayButtonClick();
+      } else {
+        // Fallback if branding hasn't loaded yet
+        setTimeout(startMyGame, 200);
+      }
+    }
+  </script>
+
+
+  <div id="content"></div>
+  <footer class="app-footer">
+    <span>Tip: connect Python MediaPipe for gesture control.</span>
+  </footer>
+
+  <div id="orientation"></div>
+  <div id="loader">Loading...</div>
+  <script src="cv-controls.js"></script>
+
+  <script type="text/javascript">
+    var gameName = "bob-the-robber-2.min.f.js";
+
+    //This all here is for cache busting;
+    function addScript(src, buster, callback) {
+      var s = document.createElement("script");
+      s.setAttribute("src", src + "?v=" + buster);
+      if (typeof callback === "function") {
+        s.onload = callback;
+      }
+      document.body.appendChild(s);
+    }
+
+    window.addEventListener(
+      "touchmove",
+      function (event) {
+        event.preventDefault();
+      },
+      false
+    );
+    if (typeof window.devicePixelRatio != "undefined" && window.devicePixelRatio > 2) {
+      var meta = document.getElementById("viewport");
+      meta.setAttribute("content", "width=device-width, initial-scale=" + 2 / window.devicePixelRatio + ", user-scalable=no");
+    }
+
+    addScript("version.js", Date.now(), function () {
+      addScript(gameName, version, function () {
+        var game = new Game();
+      });
+    });
+  </script>
+  <script id="game-hacks">
+    // ==========================================
+    // GAME LOGIC OVERRIDES (Monkey-Patching)
+    // ==========================================
+    // You can safely change these variables to control the game!
+
+    const HACKS = {
+      cameraSpeedX: 0.05,  // Very slow tracking to see it working (1 = instant lock, 0.05 = laggy)
+      cameraSpeedY: 0.05,
+      disableAlarms: true, // Set to true to disable security cameras / alarms completely
+      freezeGuards: true, // Set to true to freeze all enemies
+    };
+
+    // This loop runs continuously to enforce your hacks
+    setInterval(function () {
+      // Check if Phaser and the game instance have loaded
+      if (window.Phaser && Phaser.GAMES && Phaser.GAMES.length > 0) {
+        var game = Phaser.GAMES[0];
+
+        // 1. CONTROL CAMERA SPEED
+        try {
+          if (game.camera && game.camera.lerp) {
+            // The game uses a custom W.Point class which uses .set() instead of .setTo()
+            if (typeof game.camera.lerp.set === 'function') {
+              game.camera.lerp.set(HACKS.cameraSpeedX, HACKS.cameraSpeedY);
+            } else {
+              game.camera.lerp.x = HACKS.cameraSpeedX;
+              game.camera.lerp.y = HACKS.cameraSpeedY;
+            }
+          }
+        } catch (e) { console.error("Camera hack error", e); }
+
+        // 2. CONTROL ALARMS AND ENEMIES via Custom Game State
+        try {
+          if (game.state) {
+            var currentState = game.state.getCurrentState();
+
+            if (currentState) {
+
+              // Disable Alarms globally by instantly resetting the "alert" state back to normal
+              if (HACKS.disableAlarms && currentState.gameStatus) {
+                if (currentState.gameStatus === "alert" || currentState.gameStatus === "warning") {
+                  currentState.gameStatus = "normal";
+                  currentState.totalAlerts = 0; // Prevent losing the game
+                }
+              }
+
+              // Freeze Guards by iterating through the game's custom 'enemies' array
+              if (HACKS.freezeGuards && currentState.enemies && Array.isArray(currentState.enemies)) {
+                for (var i = 0; i < currentState.enemies.length; i++) {
+                  var enemy = currentState.enemies[i];
+
+                  enemy.enemyAction = "stun"; // Force their internal logic into stunned mode
+
+                  if (enemy.enemyClip) {
+                    // We can also completely hide them so they are invisible
+                    enemy.enemyClip.visible = false;
+                    enemy.enemyClip.x = -9999;
+                  }
+                }
+              }
+
+              // Do the same for 'zombies' if the level has them
+              if (HACKS.freezeGuards && currentState.zombies && Array.isArray(currentState.zombies)) {
+                for (var i = 0; i < currentState.zombies.length; i++) {
+                  var zombie = currentState.zombies[i];
+                  zombie.zombieStatus = "stun";
+                  if (zombie.enemyClip) {
+                    zombie.enemyClip.visible = false;
+                    zombie.enemyClip.x = -9999;
+                  }
+                }
+              }
+            }
+          }
+        }
+    }, 100); // Runs 10 times per second
+  </script>
+</body>
+
+</html>

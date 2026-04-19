@@ -1,0 +1,9 @@
+{
+  "name": "bob-the-robber-2",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Node static server for Bob the Robber 2",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
