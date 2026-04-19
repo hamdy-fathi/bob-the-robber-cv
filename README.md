@@ -59,3 +59,29 @@ You can use the tracker to play any desktop game or emulator on your computer. I
 
 ### Exiting
 To safely shut down the tracker and finalize the CSV log file, make sure the Python video window is in focus and press either the **`Q`** key or the **`ESC`** key.
+
+## 📈 Motion Performance Dashboard
+
+After collecting data, visualize your performance metrics using the built-in dashboard:
+
+### Automatic Dashboard Display
+- **After Game Completion**: The dashboard automatically appears when you finish a game session
+- **Real-time Analytics**: View your performance data immediately after completing exercises
+- **Auto-load Latest Data**: The dashboard automatically loads your most recent rehab session data
+
+### Manual Access
+1. Start the local server:
+   ```bash
+   npm start
+   ```
+2. Open your browser and navigate to `http://localhost:3000/dashboard.html`
+3. Or click the "View Performance Dashboard" link from the main game page
+
+### Dashboard Features
+- **📊 Interactive Charts**: Time-series visualizations for all motion metrics
+- **🎨 Beautiful Design**: Modern, colorful interface with smooth animations
+- **📈 Performance Stats**: Key metrics summary (session time, averages, totals)
+- **🔄 Auto-loading**: Automatically detects and loads the latest CSV file
+- **📱 Responsive**: Works on desktop and mobile devices
+
+The dashboard provides a comprehensive view of your motion performance for analysis and tracking progress.

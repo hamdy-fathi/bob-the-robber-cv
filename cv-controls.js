@@ -93,8 +93,65 @@
     move.split("+").forEach(function (part) { emitMove(part); });
   }
 
+  // Game CSV logging
+  let gameCsvData = null;
+  let gameCsvLogTimer = null;
+  let gameCsvFileName = '';
+
+  function startGameCsvLogging() {
+    const now = new Date();
+    gameCsvFileName = `game_rehab_session_${now.toISOString().slice(0,10).replace(/-/g,'')}_${now.toTimeString().slice(0,8).replace(/:/g,'')}.csv`;
+    
+    // POST first row (header) to server
+    fetch('/append-game-csv', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        filename: gameCsvFileName,
+        rows: ['Timestamp,Game_Move,Action_Pinch,Tremor_Score,Pinch_Amplitude,Wrist_Flicks,Total_Pinches']
+      })
+    }).catch(console.error);
+    
+    // Throttle logging to ~1s intervals
+    if (gameCsvLogTimer) clearInterval(gameCsvLogTimer);
+    gameCsvLogTimer = setInterval(logGameCsvRow, 1000);
+  }
+
+  function logGameCsvRow() {
+    if (!gameCsvData) return;
+    const now = new Date();
+    const timestamp = now.toTimeString().slice(0,8);
+    const row = [
+      timestamp,
+      gameCsvData.move || 'idle',
+      gameCsvData.action || false,
+      gameCsvData.tremor_score?.toFixed(4) || '0.0000',
+      gameCsvData.pinch_amplitude?.toFixed(4) || '0.0000',
+      gameCsvData.flicks_count || 0,
+      gameCsvData.total_pinches || 0
+    ].map(v => typeof v === 'boolean' ? v.toString() : v).join(',');
+    
+    fetch('/append-game-csv', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        filename: gameCsvFileName,
+        rows: [row]
+      })
+    }).catch(console.error);
+  }
+
+  function stopGameCsvLogging() {
+    if (gameCsvLogTimer) {
+      clearInterval(gameCsvLogTimer);
+      gameCsvLogTimer = null;
+    }
+    gameCsvData = null;
+  }
+
   function drawOverlay(data) {
     if (!overlayCtx) return;
+    gameCsvData = data; // Store for CSV logging
 
     overlayCtx.clearRect(0, 0, overlayEl.width, overlayEl.height);
     overlayCtx.strokeStyle = "rgba(101, 213, 255, 0.65)";
@@ -167,6 +224,7 @@
 
       socket.onopen = function () {
         enabled = true;
+        startGameCsvLogging(); // Start game CSV when connected
         if (toggleBtn) toggleBtn.textContent = "Disable Python MediaPipe";
         setStatus("Connected", true);
         if (panelEl) panelEl.classList.add("connected");
@@ -191,6 +249,7 @@
       };
 
       socket.onclose = function () {
+        stopGameCsvLogging();
         enabled = false;
         if (toggleBtn) toggleBtn.textContent = "Enable Python MediaPipe";
         setStatus("Offline", false);

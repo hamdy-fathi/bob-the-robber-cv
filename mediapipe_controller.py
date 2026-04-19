@@ -6,6 +6,7 @@ import csv
 import math
 import argparse
 import sys
+import urllib.request
 import tkinter as tk
 from tkinter import ttk
 from datetime import datetime

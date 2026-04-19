@@ -114,13 +114,180 @@
         // Fallback if branding hasn't loaded yet
         setTimeout(startMyGame, 200);
       }
+
+      // Start monitoring for game completion
+      setTimeout(monitorGameCompletion, 5000);
+    }
+
+    // Monitor for game completion and show dashboard
+    function monitorGameCompletion() {
+      const checkInterval = setInterval(() => {
+        try {
+          // Check if Phaser game exists
+          if (window.Phaser && Phaser.GAMES && Phaser.GAMES.length > 0) {
+            const game = Phaser.GAMES[0];
+
+            // Check for win/lose conditions in the game state
+            if (game.state && game.state.getCurrentState) {
+              const currentState = game.state.getCurrentState();
+
+              // Look for common win/lose indicators
+              if (currentState) {
+                // Check for game over screens, win screens, or completion states
+                const stateName = currentState.key || currentState.constructor.name;
+
+                // Common game completion indicators
+                const completionIndicators = [
+                  'GameOver', 'Win', 'Complete', 'Victory', 'Success',
+                  'LevelComplete', 'MissionComplete', 'Finished'
+                ];
+
+                const isCompleted = completionIndicators.some(indicator =>
+                  stateName.toLowerCase().includes(indicator.toLowerCase())
+                );
+
+                // Also check for specific UI elements that might indicate completion
+                const gameOverElements = document.querySelectorAll('*[class*="gameover"], *[class*="win"], *[class*="complete"], *[id*="gameover"], *[id*="win"]');
+                const hasCompletionUI = gameOverElements.length > 0;
+
+                // Check for "You Win" or "Game Over" text in the DOM
+                const bodyText = document.body.textContent || document.body.innerText;
+                const hasWinText = /\b(you win|game over|level complete|mission accomplished|victory)\b/i.test(bodyText);
+
+                if (isCompleted || hasCompletionUI || hasWinText) {
+                  clearInterval(checkInterval);
+                  showCompletionDashboard();
+                  return;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          // Ignore errors during monitoring
+        }
+      }, 2000); // Check every 2 seconds
+
+      // Stop monitoring after 2 hours (safety timeout)
+      setTimeout(() => {
+        clearInterval(checkInterval);
+      }, 2 * 60 * 60 * 1000);
+    }
+
+    // Show the completion dashboard
+    function showCompletionDashboard() {
+      // Create overlay for dashboard
+      const overlay = document.createElement('div');
+      overlay.id = 'completion-overlay';
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.5s ease;
+      `;
+
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 600px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        animation: slideUp 0.5s ease;
+      `;
+
+      modal.innerHTML = `
+        <h1 style="color: white; font-size: 2.5rem; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+          🎉 Session Complete!
+        </h1>
+        <p style="color: rgba(255,255,255,0.9); font-size: 1.2rem; margin-bottom: 30px; line-height: 1.6;">
+          Great job! Your motion performance data has been recorded.<br>
+          View your detailed analytics and progress tracking.
+        </p>
+        <div style="display: flex; gap: 20px; justify-content: center;">
+          <button id="view-dashboard-btn" style="
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+          ">📊 View Dashboard</button>
+          <button id="close-modal-btn" style="
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+          ">Continue Playing</button>
+        </div>
+      `;
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      // Add CSS animations
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { transform: translateY(50px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        #view-dashboard-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        #close-modal-btn:hover {
+          background: rgba(255,255,255,0.3);
+          transform: translateY(-2px);
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Button event listeners
+      document.getElementById('view-dashboard-btn').onclick = () => {
+        window.open('dashboard.html', '_blank');
+        overlay.remove();
+      };
+
+      document.getElementById('close-modal-btn').onclick = () => {
+        overlay.remove();
+      };
+
+      // Auto-show dashboard after 10 seconds if no interaction
+      setTimeout(() => {
+        if (document.getElementById('completion-overlay')) {
+          window.open('dashboard.html', '_blank');
+          overlay.remove();
+        }
+      }, 10000);
     }
   </script>
 
 
   <div id="content"></div>
   <footer class="app-footer">
-    <span>Tip: connect Python MediaPipe for gesture control.</span>
+    <span>Tip: connect Python MediaPipe for gesture control. | <a href="dashboard.html" style="color: #66fcf1;">View Performance Dashboard</a></span>
   </footer>
 
   <div id="orientation"></div>

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KineticLink | Motion Performance Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 10% 30%, #f0f4ff, #e9eefc);
+            min-height: 100vh;
+            padding: 28px 24px;
+            color: #1a2639;
+        }
+
+        .glass-container {
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        /* modern card style */
+        .card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(2px);
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.02);
+            transition: all 0.25s ease;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .header {
+            text-align: center;
+            padding: 32px 28px;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(120deg, #1E2A5E, #2D3A6E, #4B6A9B);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 12px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #4a5b7a;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            display: inline-block;
+            padding-top: 10px;
+        }
+
+        /* mode toggle refined */
+        .mode-panel {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 48px;
+            padding: 18px 28px;
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.03);
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 16px;
+        }
+
+        .mode-btn {
+            border: none;
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f0f2f8;
+            color: #2c3e66;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .mode-btn.active {
+            background: #2c3e66;
+            color: white;
+            box-shadow: 0 6px 14px rgba(44, 62, 102, 0.2);
+        }
+
+        .mode-status {
+            font-weight: 600;
+            font-size: 0.9rem;
+            background: #eef2ff;
+            padding: 8px 18px;
+            border-radius: 40px;
+            color: #1e3a5f;
+        }
+
+        /* stat grid premium */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 20px;
+            margin-bottom: 36px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 28px;
+            padding: 22px 16px;
+            text-align: center;
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #1f2b48, #2f4172);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .stat-card p {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c7a91;
+        }
+
+        /* upload refined */
+        .upload-area {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 28px;
+            padding: 32px 28px;
+            margin-bottom: 32px;
+            text-align: center;
+            border: 1px dashed #b9c4e0;
+            transition: 0.2s;
+        }
+
+        .upload-label {
+            background: #2c3e66;
+            color: white;
+            padding: 14px 32px;
+            border-radius: 44px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: inline-block;
+            transition: 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+
+        .upload-label:hover {
+            background: #1f2b48;
+            transform: scale(0.98);
+        }
+
+        .upload-hint {
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: #5a6e8c;
+        }
+
+        /* charts layout */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+            gap: 28px;
+            margin-bottom: 28px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 32px;
+            padding: 22px 20px 20px 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.02);
+            transition: all 0.2s;
+            border: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        .chart-card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-left: 8px;
+            border-left: 5px solid #2c3e66;
+            color: #1e2a44;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        canvas {
+            max-height: 360px;
+            width: 100%;
+        }
+
+        .analysis-report {
+            margin-top: 20px;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+            margin: 28px 0 24px;
+        }
+
+        .insight-card {
+            background: #ffffff;
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.02);
+            border-top: 4px solid;
+        }
+
+        .insight-card h3 {
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 18px;
+            color: #1e2f4b;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 0.9rem;
+        }
+
+        .metric-row .label {
+            font-weight: 500;
+            color: #5d6f8f;
+        }
+
+        .metric-row .value {
+            font-weight: 700;
+            color: #1f2b48;
+        }
+
+        .clinical-box {
+            background: #f9fafc;
+            border-radius: 28px;
+            padding: 28px;
+            margin-top: 20px;
+        }
+
+        .clinical-box h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: #1f2b48;
+        }
+
+        .insight-item {
+            display: flex;
+            gap: 16px;
+            padding: 18px 0;
+            border-bottom: 1px solid #eef2f8;
+        }
+
+        .insight-marker {
+            font-size: 1.6rem;
+            font-weight: 600;
+            background: #eef3ff;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 30px;
+            color: #2c3e66;
+        }
+
+        .insight-text {
+            flex: 1;
+            line-height: 1.45;
+            font-size: 0.95rem;
+            color: #2c3e5c;
+        }
+
+        .trend-up { color: #c44536; font-weight: 700; }
+        .trend-down { color: #2c7a4d; font-weight: 700; }
+        .badge-high { color: #b45330; font-weight: 700; }
+        .badge-medium { color: #d98c2b; font-weight: 700; }
+        .badge-low { color: #3a7ca5; font-weight: 700; }
+
+        @media (max-width: 760px) {
+            body { padding: 16px; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .stat-card h3 { font-size: 1.8rem; }
+            .mode-panel { flex-direction: column; align-items: stretch; }
+        }
+
+        .loading-overlay {
+            text-align: center;
+            padding: 48px;
+            background: white;
+            border-radius: 40px;
+            font-weight: 500;
+            color: #2c3e66;
+        }
+    </style>
+</head>
+<body>
+<div class="glass-container">
+    <div class="card header">
+        <h1>KineticLink Dashboard</h1>
+        <p>Motion Performance Analytics · Parkinson Rehabilitation Metrics</p>
+    </div>
+
+    <div class="mode-panel">
+        <div class="mode-buttons">
+            <button id="realtimeBtn" class="mode-btn active">Live Stream Mode</button>
+            <button id="uploadBtn" class="mode-btn">Manual Upload CSV</button>
+        </div>
+        <div class="mode-status" id="modeStatus">Live Active · Auto-refresh enabled</div>
+    </div>
+
+    <div class="stats-grid" id="statsGrid" style="display: none;">
+        <div class="stat-card"><h3 id="totalTime">--</h3><p>Session Time (s)</p></div>
+        <div class="stat-card"><h3 id="avgTremor">--</h3><p>Avg Tremor Score</p></div>
+        <div class="stat-card"><h3 id="totalPinches">--</h3><p>Total Pinches</p></div>
+        <div class="stat-card"><h3 id="totalFlicks">--</h3><p>Total Wrist Flicks</p></div>
+        <div class="stat-card"><h3 id="activityScore">--</h3><p>Activity Score</p></div>
+        <div class="stat-card"><h3 id="tremorTrend">--</h3><p>Tremor Trend (%)</p></div>
+        <div class="stat-card"><h3 id="correlation">--</h3><p>Tremor-Pinch Corr</p></div>
+        <div class="stat-card"><h3 id="maxTremor">--</h3><p>Peak Tremor Score</p></div>
+    </div>
+
+    <div class="upload-area" id="uploadArea">
+        <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+        <label for="csvFileInput" class="upload-label">Upload CSV File</label>
+        <p class="upload-hint">Accepts rehab_session CSV · Auto-loads latest session file if available</p>
+    </div>
+
+    <div id="chartsContainer" style="display: none;">
+        <div class="charts-grid">
+            <div class="chart-card"><h2>Tremor Score Over Time</h2><canvas id="tremorChart"></canvas></div>
+            <div class="chart-card"><h2>Pinch Amplitude Over Time</h2><canvas id="pinchAmplitudeChart"></canvas></div>
+            <div class="chart-card"><h2>Wrist Flicks Over Time</h2><canvas id="wristFlicksChart"></canvas></div>
+            <div class="chart-card"><h2>Total Pinches Over Time</h2><canvas id="totalPinchesChart"></canvas></div>
+        </div>
+        <div class="charts-grid">
+            <div class="chart-card full-width"><h2>Multi-Signal Comparison</h2><canvas id="comparisonChart"></canvas></div>
+        </div>
+        <div class="charts-grid">
+            <div class="chart-card full-width"><h2>Game Activity & Gestures</h2><canvas id="gameMoveChart"></canvas></div>
+        </div>
+        <div id="analysisDashboard" class="analysis-report"></div>
+    </div>
+
+    <div id="loadingMessage" class="loading-overlay">
+        <p>Initializing dashboard · Searching for session data</p>
+    </div>
+</div>
+
+<script>
+    // ----- GLOBALS -----
+    let csvData = [];
+    let currentFileName = '';
+    let realTimeInterval = null;
+    let currentMode = 'realtime';
+    let charts = {};
+
+    // Helper: animate numbers
+    function animateNumber(elementId, targetValue, formatter = (v) => v.toFixed(2)) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const start = parseFloat(el.innerText) || 0;
+        const duration = 700;
+        const startTime = performance.now();
+        function step(now) {
+            const elapsed = now - startTime;
+            const t = Math.min(1, elapsed / duration);
+            const eased = 1 - Math.pow(1 - t, 2);
+            const current = start + (targetValue - start) * eased;
+            el.innerText = formatter(current);
+            if (t < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
+
+    // stats computation
+    function computeStats(data) {
+        const tremor = data.map(r => parseFloat(r.Tremor_Score) || 0);
+        const pinch = data.map(r => parseFloat(r.Pinch_Amplitude) || 0);
+        const wrist = data.map(r => parseFloat(r.Wrist_Flicks) || 0);
+        const totalPinchVals = data.map(r => parseFloat(r.Total_Pinches) || 0);
+        const gameMoveArr = data.map(r => r.Game_Move === 'true' ? 1 : 0);
+        const actionPinchArr = data.map(r => r.Action_Pinch === 'true' ? 1 : 0);
+
+        const sessionTime = data.length;
+        const avgTremor = tremor.reduce((a,b)=>a+b,0)/sessionTime;
+        const maxTremor = Math.max(...tremor);
+        const totalWristFlicks = Math.max(...wrist);
+        const totalPinches = Math.max(...totalPinchVals);
+        
+        const tremorVariance = tremor.reduce((acc,v)=>acc + Math.pow(v-avgTremor,2),0)/sessionTime;
+        let tremorTrend = 0;
+        if (sessionTime >= 4) {
+            const half = Math.floor(sessionTime/2);
+            const firstHalf = tremor.slice(0, half).reduce((a,b)=>a+b,0)/half;
+            const secondHalf = tremor.slice(sessionTime-half).reduce((a,b)=>a+b,0)/half;
+            tremorTrend = firstHalf === 0 ? 0 : ((secondHalf - firstHalf)/firstHalf)*100;
+        }
+        let pinchTrend = 0;
+        if (sessionTime >= 4) {
+            const half = Math.floor(sessionTime/2);
+            const firstP = pinch.slice(0, half).reduce((a,b)=>a+b,0)/half;
+            const secondP = pinch.slice(sessionTime-half).reduce((a,b)=>a+b,0)/half;
+            pinchTrend = firstP === 0 ? 0 : ((secondP - firstP)/firstP)*100;
+        }
+
+        const corr = (a,b) => {
+            const n = a.length;
+            if (n===0) return 0;
+            const sumA = a.reduce((s,v)=>s+v,0);
+            const sumB = b.reduce((s,v)=>s+v,0);
+            const sumAB = a.reduce((s,v,i)=>s+v*b[i],0);
+            const sumA2 = a.reduce((s,v)=>s+v*v,0);
+            const sumB2 = b.reduce((s,v)=>s+v*v,0);
+            const denom = Math.sqrt((n*sumA2 - sumA*sumA)*(n*sumB2 - sumB*sumB));
+            return denom===0 ? 0 : (n*sumAB - sumA*sumB)/denom;
+        };
+        const correlation = corr(tremor, pinch);
+
+        let activitySum = 0;
+        data.forEach(row => {
+            if (row.Game_Move !== 'idle') activitySum += 1;
+            if (row.Action_Pinch === 'true') activitySum += 2;
+            if (parseFloat(row.Wrist_Flicks) > 0) activitySum += 1.5;
+        });
+        const activityScore = activitySum / sessionTime;
+
+        return { sessionTime, avgTremor, maxTremor, totalWristFlicks, totalPinches, tremorTrend, correlation, activityScore, tremorVariance, pinchTrend, tremor, pinch, wrist, totalPinchVals, gameMoveArr, actionPinchArr };
+    }
+
+    function updateStatCards(stats) {
+        animateNumber('totalTime', stats.sessionTime, (v) => `${Math.floor(v)} s`);
+        animateNumber('avgTremor', stats.avgTremor, (v)=> v.toFixed(3));
+        animateNumber('totalPinches', stats.totalPinches, (v)=> Math.round(v));
+        animateNumber('totalFlicks', stats.totalWristFlicks, (v)=> Math.round(v));
+        animateNumber('activityScore', stats.activityScore, (v)=> v.toFixed(2));
+        const trendSign = stats.tremorTrend > 0 ? '+' : '';
+        animateNumber('tremorTrend', Math.abs(stats.tremorTrend), (v)=> `${trendSign}${v.toFixed(1)}%`);
+        animateNumber('correlation', Math.abs(stats.correlation), (v)=> v.toFixed(3));
+        animateNumber('maxTremor', stats.maxTremor, (v)=> v.toFixed(3));
+    }
+
+    function destroyCharts() {
+        Object.values(charts).forEach(ch => { if(ch) ch.destroy(); });
+        charts = {};
+    }
+
+    function renderAllCharts(labels, tremor, pinch, wrist, totalPinches, gameMove, actionPinch) {
+        destroyCharts();
+        const makeLine = (id, label, data, color) => {
+            const ctx = document.getElementById(id)?.getContext('2d');
+            if(!ctx) return;
+            charts[id] = new Chart(ctx, {
+                type: 'line', data: { labels, datasets: [{ label, data, borderColor: color, backgroundColor: `${color}15`, borderWidth: 2.5, tension: 0.3, fill: true, pointRadius: 2, pointBackgroundColor: color }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+            });
+        };
+        makeLine('tremorChart', 'Tremor Score', tremor, '#e76f51');
+        makeLine('pinchAmplitudeChart', 'Pinch Amplitude', pinch, '#2a9d8f');
+        makeLine('wristFlicksChart', 'Wrist Flicks', wrist, '#e9c46a');
+        makeLine('totalPinchesChart', 'Total Pinches', totalPinches, '#4c9aff');
+
+        const multiCtx = document.getElementById('comparisonChart')?.getContext('2d');
+        if(multiCtx) {
+            charts.comparisonChart = new Chart(multiCtx, {
+                type: 'line', data: { labels, datasets: [
+                    { label: 'Tremor Score', data: tremor, borderColor: '#e76f51', backgroundColor: 'transparent', borderWidth: 2, tension: 0.2, pointRadius: 1 },
+                    { label: 'Pinch Amplitude', data: pinch, borderColor: '#2a9d8f', borderWidth: 2, tension: 0.2, pointRadius: 1 },
+                    { label: 'Wrist Flicks', data: wrist, borderColor: '#e9c46a', borderWidth: 2, tension: 0.2, pointRadius: 1 },
+                    { label: 'Total Pinches', data: totalPinches, borderColor: '#4c9aff', borderWidth: 2, tension: 0.2, pointRadius: 1 }
+                ] }, options: { responsive: true, plugins: { legend: { position: 'top' } } }
+            });
+        }
+        const gameCtx = document.getElementById('gameMoveChart')?.getContext('2d');
+        if(gameCtx) {
+            charts.gameMoveChart = new Chart(gameCtx, {
+                type: 'line', data: { labels, datasets: [
+                    { label: 'Game Move', data: gameMove, borderColor: '#9b5de5', borderWidth: 2.5, stepped: true, pointRadius: 2 },
+                    { label: 'Action Pinch', data: actionPinch, borderColor: '#f15bb5', borderWidth: 2.5, stepped: true, pointRadius: 2 }
+                ] }, options: { responsive: true }
+            });
+        }
+    }
+
+    function createAnalysisDashboard(stats) {
+        const container = document.getElementById('analysisDashboard');
+        if(!container) return;
+        const tremorQuality = stats.tremorVariance > 0.012 ? 'High variability' : (stats.tremorVariance > 0.005 ? 'Moderate variability' : 'Stable pattern');
+        const pinchInterpret = stats.pinchTrend > 5 ? 'Improving fine motor' : (stats.pinchTrend < -5 ? 'Declining amplitude' : 'Stable motor control');
+        const activityLevel = stats.activityScore > 1.8 ? 'Excellent engagement' : (stats.activityScore > 1.0 ? 'Moderate engagement' : 'Low engagement');
+        const corrStrength = Math.abs(stats.correlation) > 0.6 ? 'Strong correlation' : (Math.abs(stats.correlation) > 0.3 ? 'Moderate correlation' : 'Weak correlation');
+        const sessionQuality = stats.activityScore > 2 ? 'Excellent' : (stats.activityScore > 1.2 ? 'Good' : (stats.activityScore > 0.7 ? 'Fair' : 'Needs improvement'));
+
+        container.innerHTML = `
+            <div class="chart-card full-width analysis-report">
+                <h2>Clinical Analysis & Performance Insights</h2>
+                <div class="analysis-grid">
+                    <div class="insight-card" style="border-top-color: #e76f51;"><h3>Tremor Analysis</h3>
+                        <div class="metric-row"><span class="label">Average Score</span><span class="value">${stats.avgTremor.toFixed(3)}</span></div>
+                        <div class="metric-row"><span class="label">Peak Tremor</span><span class="value">${stats.maxTremor.toFixed(3)}</span></div>
+                        <div class="metric-row"><span class="label">Trend</span><span class="value ${stats.tremorTrend>0?'trend-up':'trend-down'}">${stats.tremorTrend>0?'Increasing ↗' : 'Decreasing ↘'} (${Math.abs(stats.tremorTrend).toFixed(1)}%)</span></div>
+                        <div class="metric-row"><span class="label">Variance</span><span class="value">${stats.tremorVariance.toFixed(4)}</span></div>
+                        <div class="metric-row"><span class="label">Pattern</span><span class="value">${tremorQuality}</span></div>
+                    </div>
+                    <div class="insight-card" style="border-top-color: #2a9d8f;"><h3>Pinch Performance</h3>
+                        <div class="metric-row"><span class="label">Avg Amplitude</span><span class="value">${(stats.pinch.reduce((a,b)=>a+b,0)/stats.pinch.length).toFixed(3)}</span></div>
+                        <div class="metric-row"><span class="label">Max Amplitude</span><span class="value">${Math.max(...stats.pinch).toFixed(3)}</span></div>
+                        <div class="metric-row"><span class="label">Total Pinches</span><span class="value">${stats.totalPinches}</span></div>
+                        <div class="metric-row"><span class="label">Trend</span><span class="value ${stats.pinchTrend>0?'trend-up':'trend-down'}">${stats.pinchTrend>0?'Improving ↗' : 'Declining ↘'} (${Math.abs(stats.pinchTrend).toFixed(1)}%)</span></div>
+                    </div>
+                    <div class="insight-card" style="border-top-color: #e9c46a;"><h3>Wrist & Activity</h3>
+                        <div class="metric-row"><span class="label">Total Flicks</span><span class="value">${stats.totalWristFlicks}</span></div>
+                        <div class="metric-row"><span class="label">Flick Rate (/min)</span><span class="value">${(stats.totalWristFlicks / Math.max(1,stats.sessionTime) * 60).toFixed(1)}</span></div>
+                        <div class="metric-row"><span class="label">Activity Score</span><span class="value">${stats.activityScore.toFixed(2)}</span></div>
+                        <div class="metric-row"><span class="label">Engagement</span><span class="value">${activityLevel}</span></div>
+                    </div>
+                    <div class="insight-card" style="border-top-color: #4c9aff;"><h3>Correlations & Quality</h3>
+                        <div class="metric-row"><span class="label">Tremor-Pinch Corr</span><span class="value">${stats.correlation.toFixed(3)}</span></div>
+                        <div class="metric-row"><span class="label">Interpretation</span><span class="value">${corrStrength}</span></div>
+                        <div class="metric-row"><span class="label">Session Quality</span><span class="value">${sessionQuality}</span></div>
+                    </div>
+                </div>
+                <div class="clinical-box">
+                    <h3>Clinical Recommendations</h3>
+                    <div class="insight-item"><div class="insight-marker">A</div><div class="insight-text"><strong>Tremor Management:</strong> ${stats.tremorVariance > 0.01 ? 'High tremor variability suggests medication timing optimization. Consider levodopa response review.' : 'Stable tremor pattern indicates good response to current therapy.'}</div></div>
+                    <div class="insight-item"><div class="insight-marker">B</div><div class="insight-text"><strong>Motor Performance:</strong> ${stats.pinchTrend > 0 ? 'Pinch amplitude improving — fine motor control progressing well. Continue strengthening exercises.' : 'Declining pinch amplitude may indicate fatigue; adjust session intensity or rest intervals.'}</div></div>
+                    <div class="insight-item"><div class="insight-marker">C</div><div class="insight-text"><strong>Engagement Strategy:</strong> ${stats.activityScore > 1.5 ? 'High activity engagement — sustain current rehabilitation plan.' : 'Increase gamified elements or shorter high-intensity sets to boost engagement.'}</div></div>
+                    <div class="insight-item"><div class="insight-marker">D</div><div class="insight-text"><strong>Therapeutic Insight:</strong> ${Math.abs(stats.correlation) > 0.5 ? 'Tremor and pinch are strongly linked; focus on proximal stabilization exercises.' : 'Low tremor-pinch coupling — independent motor strategies effective.'}</div></div>
+                </div>
+            </div>
+        `;
+    }
+
+    function processFullData() {
+        if(!csvData.length) return;
+        const stats = computeStats(csvData);
+        updateStatCards(stats);
+        const labels = csvData.map((_,idx)=> idx+1);
+        renderAllCharts(labels, stats.tremor, stats.pinch, stats.wrist, stats.totalPinchVals, stats.gameMoveArr, stats.actionPinchArr);
+        createAnalysisDashboard(stats);
+        document.getElementById('chartsContainer').style.display = 'block';
+        document.getElementById('statsGrid').style.display = 'grid';
+        document.getElementById('loadingMessage').style.display = 'none';
+    }
+
+    // incremental update for realtime
+    function updateIncremental(newRows) {
+        if(!newRows.length) return;
+        csvData = [...csvData, ...newRows];
+        processFullData();
+    }
+
+    function startRealtimePolling(fileUrl) {
+        if(realTimeInterval) clearInterval(realTimeInterval);
+        let lastLength = csvData.length;
+        realTimeInterval = setInterval(async () => {
+            try {
+                const res = await fetch(fileUrl + '?t=' + Date.now());
+                if(res.ok) {
+                    const text = await res.text();
+                    Papa.parse(text, { header: true, complete: (results) => {
+                        const fresh = results.data.filter(r => r.Timestamp);
+                        if(fresh.length > lastLength) {
+                            const added = fresh.slice(lastLength);
+                            if(added.length) {
+                                csvData = fresh;
+                                processFullData();
+                                lastLength = fresh.length;
+                                const notif = document.createElement('div');
+                                notif.innerText = `Live update · +${added.length} new records`;
+                                notif.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#1e2f4b; color:white; padding:8px 16px; border-radius:40px; font-size:0.8rem; z-index:999;';
+                                document.body.appendChild(notif);
+                                setTimeout(()=> notif.remove(), 2000);
+                            }
+                        }
+                    }});
+                }
+            } catch(e) { /* silent */ }
+        }, 1800);
+    }
+
+    async function autoLoadLatest() {
+        try {
+            // Fetch available CSV files from server
+            const resp = await fetch('/csv-files?t=' + Date.now());
+            if (resp.ok) {
+                const csvFiles = await resp.json();
+                if (csvFiles.length === 0) {
+                    document.getElementById('loadingMessage').innerHTML = '<p>No CSV sessions found. Run CV tracker or game first.</p>';
+                    return;
+                }
+                
+                // Prefer newest game_*.csv, then rehab_*.csv
+                const newestGame = csvFiles.find(f => f.startsWith('game_rehab_session_'));
+                const targetFile = newestGame || csvFiles[0];
+                
+                const fileResp = await fetch(targetFile + '?t=' + Date.now());
+                if (fileResp.ok) {
+                    const txt = await fileResp.text();
+                    Papa.parse(txt, { header: true, complete: (res) => {
+                        csvData = res.data.filter(r => r.Timestamp);
+                        if (csvData.length) {
+                            processFullData();
+                            currentFileName = targetFile;
+                            if (currentMode === 'realtime') startRealtimePolling(targetFile);
+                            const type = targetFile.startsWith('game_') ? '🎮 Game' : '🤲 CV';
+                            document.getElementById('modeStatus').innerText = `Live Active · ${type} (${targetFile})`;
+                            document.getElementById('loadingMessage').style.display = 'none';
+                        }
+                    }});
+                }
+            }
+        } catch (e) {
+            console.error('Auto-load failed:', e);
+            document.getElementById('loadingMessage').innerHTML = '<p>Server error. Check if node server.js is running.</p>';
+        }
+    }
+
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        if(realTimeInterval) clearInterval(realTimeInterval);
+        Papa.parse(file, { header: true, complete: (results) => {
+            csvData = results.data.filter(r=>r.Timestamp);
+            processFullData();
+            currentMode = 'upload';
+            document.getElementById('modeStatus').innerText = 'Manual mode · Static analysis';
+            document.querySelector('#realtimeBtn').classList.remove('active');
+            document.querySelector('#uploadBtn').classList.add('active');
+        }});
+    }
+
+    function switchToRealtime() {
+        currentMode = 'realtime';
+        document.getElementById('modeStatus').innerText = 'Live Active · Auto-refresh enabled';
+        document.querySelector('#realtimeBtn').classList.add('active');
+        document.querySelector('#uploadBtn').classList.remove('active');
+        if(currentFileName) startRealtimePolling(currentFileName);
+        else autoLoadLatest();
+    }
+    function switchToUpload() {
+        currentMode = 'upload';
+        if(realTimeInterval) clearInterval(realTimeInterval);
+        document.getElementById('modeStatus').innerText = 'Manual Upload Mode';
+        document.querySelector('#uploadBtn').classList.add('active');
+        document.querySelector('#realtimeBtn').classList.remove('active');
+    }
+
+    window.addEventListener('load', () => {
+        document.getElementById('realtimeBtn').addEventListener('click', switchToRealtime);
+        document.getElementById('uploadBtn').addEventListener('click', switchToUpload);
+        document.getElementById('csvFileInput').addEventListener('change', handleFileUpload);
+        autoLoadLatest();
+    });
+</script>
+</body>
+</html>
